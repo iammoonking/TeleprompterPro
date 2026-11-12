@@ -17,7 +17,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - name: Install SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
@@ -35,7 +38,8 @@ jobs:
           cd project
           gradle --no-daemon assembleDebug
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: PromptPro-APK
           path: project/app/build/outputs/apk/debug/app-debug.apk
