@@ -33,7 +33,7 @@ jobs:
         run: |
           unzip -q PromptPro-Android-Source-Fresh.zip -d project
 
-      - name: Fix Java and Kotlin versions
+      - name: Fix Android source
         run: |
           python3 - <<'PY'
           p = "project/app/build.gradle.kts"
@@ -41,15 +41,54 @@ jobs:
           s = s.replace(
               "compileSdk=35",
               """compileSdk=35
-               compileOptions {
-                   sourceCompatibility = JavaVersion.VERSION_17
-                   targetCompatibility = JavaVersion.VERSION_17
-               }
-               kotlinOptions {
-                   jvmTarget = "17"
-               }"""
+          compileOptions {
+              sourceCompatibility = JavaVersion.VERSION_17
+              targetCompatibility = JavaVersion.VERSION_17
+          }
+          kotlinOptions {
+              jvmTarget = "17"
+          }"""
           )
           open(p, "w").write(s)
+
+          p = "project/app/src/main/java/com/promptpro/app/MainActivity.kt"
+          s = open(p).read()
+
+          s = s.replace(
+              'var recording by remember { mutableStateOf(false) }',
+              'var recording by remember { mutableStateOf(false) }\n var activeRecording by remember { mutableStateOf<androidx.camera.video.Recording?>(null) }'
+          )
+
+          s = s.replace(
+              'cam.startRecording(output,ContextCompat.getMainExecutor(ctx)){event->',
+              'cam.startRecording(output,true,ContextCompat.getMainExecutor(ctx)){event: VideoRecordEvent ->'
+          )
+
+          s = s.replace(
+              'else cam.stopRecording()',
+              'else { activeRecording?.stop() }'
+          )
+
+          s = s.replace(
+              'if(recording)cam.stopRecording();camera=false',
+              'if(recording)activeRecording?.stop();camera=false'
+          )
+
+          s = s.replace(
+              'try{activeRecording=',
+              'try{activeRecording='
+          )
+
+          s = s.replace(
+              'cam.startRecording(output,true,ContextCompat.getMainExecutor(ctx)){event: VideoRecordEvent ->',
+              'activeRecording=cam.startRecording(output,true,ContextCompat.getMainExecutor(ctx)){event: VideoRecordEvent ->'
+          )
+
+          open(p, "w").write(s)
+
+          assert "cam.stopRecording()" not in s
+          assert "event: VideoRecordEvent ->" in s
+          assert "activeRecording=cam.startRecording" in s
           PY
 
       - name: Build APK
